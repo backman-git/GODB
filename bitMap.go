@@ -37,3 +37,7 @@ func (bm *BitMap) Check(idx int) bool {
 	}
 	return bm.bits[idx/8]&(1<<(idx%8)) != 0
 }
+
+func (bm *BitMap) getSize() int {
+	return bm.len
+}

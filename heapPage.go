@@ -8,11 +8,12 @@ import (
 )
 
 type HeapPage struct {
-	pid      PageID
-	td       *TupleDesc
-	numSlots int
-	header   *BitMap
-	tuples   []Tuple
+	pid          PageID
+	td           *TupleDesc
+	numSlots     int
+	header       *BitMap
+	tuples       []*Tuple
+	lastDirtyTid TransactionID
 }
 
 func NewHeapPage(id PageID, data []byte) Page {
@@ -25,17 +26,21 @@ func NewHeapPage(id PageID, data []byte) Page {
 	byteReader := bytes.NewReader(data)
 
 	// TODO
-	td := TMPTUPLEDESC
+	td, err := db.getCatalog().getTupleDesc(id.getTableID())
+	if err != nil {
+		check(err)
+	}
 	hp := &HeapPage{pid: id, td: td}
-	hp.header = NewBitMap(hp.getHeaderSize())
-	hp.tuples = make([]Tuple, hp.getNumTuples())
+	// byte to bit
+	hp.header = NewBitMap(hp.getHeaderSize() * 8)
+	hp.tuples = make([]*Tuple, hp.getNumTuples())
 
 	// read header
 	byteReader.Read(hp.header.bits)
 
 	// read tuple
 	for idx := 0; idx < hp.getNumTuples(); idx++ {
-		hp.tuples[idx] = hp.readNextTuple(byteReader, idx)
+		hp.tuples[idx] = hp.readTuple(byteReader, idx)
 	}
 
 	return hp
@@ -68,7 +73,7 @@ func (hp HeapPage) insertTuple(t *Tuple) {
 	for emptySlot = 0; hp.isSlotUsed(emptySlot); emptySlot++ {
 	}
 
-	hp.tuples[emptySlot] = *t
+	hp.tuples[emptySlot] = t
 	hp.markSlotUsed(emptySlot)
 
 	recordID := &RecordID{hp.pid, emptySlot}
@@ -81,17 +86,17 @@ func (hp HeapPage) deleteTuple(t Tuple) {
 		check(fmt.Errorf("Delete Tuple from wrong the page"))
 	}
 
-	locSlot := t.getRecordID().getTupleNum()
+	locSlot := t.getRecordID().getTupleNo()
 	if !hp.isSlotUsed(locSlot) {
 		check(fmt.Errorf("Slot is already empty"))
 	}
-	hp.tuples[locSlot] = Tuple{}
+	hp.tuples[locSlot] = &Tuple{}
 	hp.markSlotUsed(locSlot)
 }
 
-func (hp HeapPage) readNextTuple(dataStream io.Reader, slotID int) Tuple {
+func (hp HeapPage) readTuple(dataStream io.Reader, slotID int) *Tuple {
 
-	RecordID := RecordID{Pid: hp.getID(), TupleNum: hp.getNumTuples()}
+	RecordID := RecordID{Pid: hp.getID(), TupleNo: slotID}
 	tuple := NewTuple(hp.td)
 	tuple.setRecordID(&RecordID)
 	for idx := 0; idx < tuple.getTupleDesc().numFields(); idx++ {
@@ -103,15 +108,21 @@ func (hp HeapPage) readNextTuple(dataStream io.Reader, slotID int) Tuple {
 			tuple.setField(idx, intField)
 		}
 	}
-	return *tuple
+	return tuple
 }
 
 func createEmptyPageData() []byte {
 	return make([]byte, PAGESIZE)
 }
 
-func getNumEmptySlots() {
-
+func (hp HeapPage) getNumEmptySlots() int {
+	numEmptySlot := 0
+	for idx := 0; idx < hp.header.getSize(); idx++ {
+		if !hp.header.Check(idx) {
+			numEmptySlot++
+		}
+	}
+	return numEmptySlot
 }
 
 func (hp HeapPage) isSlotUsed(idx int) bool {
@@ -149,4 +160,21 @@ func (hp HeapPage) getPageData() []byte {
 	}
 
 	return buf.Bytes()
+}
+
+func (hp HeapPage) markDirty(dirty bool, tid TransactionID) {
+
+	if dirty {
+		hp.lastDirtyTid = tid
+	} else {
+		hp.lastDirtyTid = nil
+	}
+}
+
+func (hp HeapPage) isDirty() TransactionID {
+	return hp.lastDirtyTid
+}
+
+func (hp HeapPage) getHeader() *BitMap {
+	return hp.header
 }

@@ -1,14 +1,16 @@
 package main
 
+import "io"
+
 type Page interface {
-	//getNumTuples()
-	//getHeaderSize()
+	getNumTuples() int
+	getHeaderSize() int
 	getID() PageID
-	//readNextTuple()
+	readTuple(reader io.Reader, slotID int) *Tuple
 	getPageData() []byte
 	//createEmptyPageData()
 	//deleteTuple()
 	insertTuple(t *Tuple)
-	//markDirty()
-	//isDirty()
+	markDirty(bool, TransactionID)
+	isDirty() TransactionID
 }

@@ -2,7 +2,7 @@ package main
 
 type HeapPageID struct {
 	tableID int
-	pageNum int
+	pageNo  int
 }
 
 func (id HeapPageID) getTableID() int {
@@ -10,7 +10,7 @@ func (id HeapPageID) getTableID() int {
 }
 
 func (id HeapPageID) pageno() int {
-	return id.pageNum
+	return id.pageNo
 }
 
 func (id HeapPageID) equals(v interface{}) bool {
@@ -18,7 +18,7 @@ func (id HeapPageID) equals(v interface{}) bool {
 		return false
 	}
 	vOther := v.(HeapPage)
-	if id.pageNum == vOther.pid.pageno() && id.tableID == vOther.pid.getTableID() {
+	if id.pageNo == vOther.pid.pageno() && id.tableID == vOther.pid.getTableID() {
 		return true
 	}
 	return false

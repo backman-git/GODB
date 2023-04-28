@@ -16,17 +16,19 @@ type Type interface {
 	parse(io.Reader) Field
 }
 
+const INT_TYPE_LEN = 8
+
 type INT_TYPE struct {
 }
 
 func (i INT_TYPE) getLen() int {
-	return 4
+	return INT_TYPE_LEN
 
 }
 
 func (i INT_TYPE) parse(reader io.Reader) Field {
-	intBytes := make([]byte, 4)
+	intBytes := make([]byte, INT_TYPE_LEN)
 	_, err := reader.Read(intBytes)
 	check(err)
-	return NewIntField(int(binary.BigEndian.Uint32(intBytes)))
+	return NewIntField(int(binary.LittleEndian.Uint64(intBytes)))
 }

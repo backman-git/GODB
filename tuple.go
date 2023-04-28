@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+)
 
 type Tuple struct {
 	Td     *TupleDesc
@@ -42,4 +45,8 @@ func (t Tuple) getField(idx int) Field {
 	}
 	return t.Fields[idx]
 
+}
+
+func (t Tuple) isEqual(other Tuple) bool {
+	return reflect.DeepEqual(t, other)
 }

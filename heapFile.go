@@ -13,12 +13,38 @@ func hash(s string) uint32 {
 }
 
 type heapFile struct {
-	f  *os.File
-	td TupleDesc
+	f        *os.File
+	td       *TupleDesc
+	numPages int
 }
 
-func (hf *heapFile) NewHeapFile(f *os.File) *heapFile {
-	return &heapFile{f: f}
+func NewHeapFile(f *os.File, td *TupleDesc) *heapFile {
+	fState, err := f.Stat()
+	check(err)
+	numPages := fState.Size() / PAGESIZE
+	return &heapFile{f: f, td: td, numPages: int(numPages)}
+}
+
+func (hf heapFile) insertTuple(tid TransactionID, t *Tuple) Page {
+
+	if t.getTupleDesc() == nil {
+		check(fmt.Errorf("Insert Empty Tuple"))
+	}
+
+	var page *HeapPage
+	for idx := 0; idx <= hf.numPages; idx++ {
+		pid := HeapPageID{tableID: hf.getID(), pageNo: idx}
+		page = db.getBufferPool().getPage(tid, pid, READ_WRITE).(*HeapPage)
+
+		if page.getNumEmptySlots() > 0 {
+			page.insertTuple(t)
+			break
+		}
+
+	}
+	// page become dirty
+	return page
+
 }
 
 func (hf heapFile) getFile() *os.File {
@@ -30,7 +56,7 @@ func (hf heapFile) getID() int {
 	return int(hash(hf.f.Name()))
 }
 
-func (hf heapFile) getTupleDesc() TupleDesc {
+func (hf heapFile) getTupleDesc() *TupleDesc {
 	return hf.td
 }
 
@@ -61,22 +87,33 @@ func (hf *heapFile) writePage(p Page) {
 	check(err)
 }
 
-func (hf *heapFile) numPages() int {
-	// TODO
-	return 0
-}
-
-func (hf *heapFile) InsertTuple(tid TransactionID, *t Tuple) Page {
-
-	if t == nil{
-		check(fmt.Errorf("Tuple is empty"))
-	}
-
-	
-
+func (hf *heapFile) deleteTuple(tid TransactionID, t *Tuple) Page {
 	return nil
 }
 
-func (hf *heapFile) deleteTuple(tid TransacheapFile, t Tuple) Page {
+func (hf heapFile) getNumPage() int {
+	return hf.numPages
+}
+
+func (hf heapFile) getIterator() DBIterator {
+	//return NewHeapFileIterator(hf.tid)
+}
+
+type heapFileIterator struct {
+	tid       TransactionID
+	tupleIter TupleIterator
+	curPage   int
+	file      heapFile
+}
+
+func NewHeapFileIterator(tid TransactionID) *heapFileIterator {
+
+	return &heapFileIterator{tid: tid, curPage: 0}
+}
+
+func (hfIter *heapFileIterator) open() {
+	hfIter.curPage = 0
+	pageID := HeapPageID{}
+	db.getBufferPool().getPage(hfIter.tid)
 
 }

@@ -1,9 +1,8 @@
 package main
 
 import (
-	"encoding/gob"
+	"encoding/binary"
 	"io"
-	"log"
 )
 
 type IntField struct {
@@ -34,8 +33,7 @@ func (f IntField) compare(v interface{}) bool {
 }
 
 func (f IntField) serialize(w io.Writer) {
-	enc := gob.NewEncoder(w)
-	if err := enc.Encode(f.Value); err != nil {
-		log.Fatal("Encode Error")
-	}
+	intBytes := make([]byte, f.getType().getLen())
+	binary.LittleEndian.PutUint64(intBytes, uint64(f.Value))
+	w.Write(intBytes)
 }
