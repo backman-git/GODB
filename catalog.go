@@ -67,7 +67,7 @@ func (c *Catalog) loadSchema() {
 	td := NewTupleDesc(types, names)
 
 	absFileName := fmt.Sprintf("/home/backman/GODB/DATA/%s.data", tableName)
-	fd, err := os.Create(absFileName)
+	fd, err := os.Open(absFileName)
 	check(err)
 
 	// Create a HeapFile

@@ -22,11 +22,15 @@ func Test_TupleInsertDownToFileAndReadBack(t *testing.T) {
 	}
 	tp := NewTuple(td)
 	tp.setField(0, NewIntField(111))
-	tp.setField(1, NewIntField(222))
-	tp.setField(2, NewIntField(333))
+	tp.setField(1, NewIntField(111))
+	tp.setField(2, NewIntField(111))
 
 	bp.insertTuple(tid, tableID, tp)
-	bp.insertTuple(tid, tableID, tp)
+	tp2 := NewTuple(td)
+	tp2.setField(0, NewIntField(222))
+	tp2.setField(1, NewIntField(222))
+	tp2.setField(2, NewIntField(222))
+	bp.insertTuple(tid, tableID, tp2)
 
 	// flush the page
 	bp.flushPage(tp.getRecordID().getPageID())
@@ -40,7 +44,7 @@ func Test_TupleInsertDownToFileAndReadBack(t *testing.T) {
 	skipBytes := make([]byte, bp2.getHeaderSize())
 	bReader.Read(skipBytes)
 
-	tp2 := bp2.readTuple(bReader, tp.getRecordID().getTupleNo())
+	tpOut := bp2.readTuple(bReader, tp.getRecordID().getTupleNo())
 
-	assert.Equal(t, tp.isEqual(*tp2), true)
+	assert.Equal(t, tp.isEqual(*tpOut), true)
 }

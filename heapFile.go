@@ -95,25 +95,62 @@ func (hf heapFile) getNumPage() int {
 	return hf.numPages
 }
 
-func (hf heapFile) getIterator() DBIterator {
-	//return NewHeapFileIterator(hf.tid)
+func (hf heapFile) getIterator(tid TransactionID) DBFileIterator {
+	return hf.NewHeapFileIterator(tid)
 }
 
 type heapFileIterator struct {
-	tid       TransactionID
-	tupleIter TupleIterator
-	curPage   int
-	file      heapFile
+	tid     TransactionID
+	curItr  TupleIterator
+	curPage int
+	file    *heapFile
 }
 
-func NewHeapFileIterator(tid TransactionID) *heapFileIterator {
-
-	return &heapFileIterator{tid: tid, curPage: 0}
+func (hf heapFile) NewHeapFileIterator(tid TransactionID) DBFileIterator {
+	return &heapFileIterator{tid: tid, curPage: 0, file: &hf}
 }
 
 func (hfIter *heapFileIterator) open() {
 	hfIter.curPage = 0
-	pageID := HeapPageID{}
-	db.getBufferPool().getPage(hfIter.tid)
+
+	if hfIter.curPage >= hfIter.file.getNumPage() {
+		return
+	}
+
+	hfIter.curItr.tuples = db.getBufferPool().getPage(hfIter.tid, HeapPageID{tableID: hfIter.file.getID(), pageNo: hfIter.curPage}, READ_ONLY).iterator()
+	hfIter.curItr.idx = 0
+}
+
+func (hfIter *heapFileIterator) advance() {
+
+	for !hfIter.curItr.hasNext() {
+		hfIter.curPage++
+		if hfIter.curPage < hfIter.file.getNumPage() {
+			hfIter.curItr.tuples = db.getBufferPool().getPage(hfIter.tid, HeapPageID{tableID: hfIter.file.getID(), pageNo: hfIter.curPage}, READ_ONLY).iterator()
+		} else {
+			break
+		}
+	}
 
 }
+
+func (hfIter heapFileIterator) hasNext() bool {
+	return hfIter.curPage < hfIter.file.getNumPage()
+}
+
+func (hfIter *heapFileIterator) next() Tuple {
+
+	if !hfIter.hasNext() {
+		return Tuple{}
+	}
+	tuple := hfIter.curItr.next()
+	hfIter.advance()
+	return tuple
+}
+
+func (hfIter *heapFileIterator) close() {
+	hfIter.curItr = TupleIterator{}
+	hfIter.curPage = 0
+}
+
+func (hfIter heapFileIterator) getTupleDesc() {}

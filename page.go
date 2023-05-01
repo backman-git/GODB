@@ -13,4 +13,5 @@ type Page interface {
 	insertTuple(t *Tuple)
 	markDirty(bool, TransactionID)
 	isDirty() TransactionID
+	iterator() []Tuple
 }

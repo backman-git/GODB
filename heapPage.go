@@ -178,3 +178,14 @@ func (hp HeapPage) isDirty() TransactionID {
 func (hp HeapPage) getHeader() *BitMap {
 	return hp.header
 }
+
+// remove the empty and give a copy
+func (hp HeapPage) iterator() []Tuple {
+	tuples := make([]Tuple, 0)
+	for idx := 0; idx < len(hp.tuples); idx++ {
+		if hp.isSlotUsed(idx) {
+			tuples = append(tuples, *hp.tuples[idx])
+		}
+	}
+	return tuples
+}

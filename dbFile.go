@@ -11,5 +11,5 @@ type DbFile interface {
 	getID() int
 	getTupleDesc() *TupleDesc
 	getNumPage() int
-	getIterator() DBIterator
+	getIterator(TransactionID) DBFileIterator
 }

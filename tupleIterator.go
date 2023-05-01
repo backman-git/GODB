@@ -19,9 +19,11 @@ func (tIter TupleIterator) hasNext() bool {
 	return tIter.idx < len(tIter.tuples)
 }
 
-func (tIter TupleIterator) next() Tuple {
+func (tIter *TupleIterator) next() Tuple {
 	if tIter.hasNext() {
-		return tIter.tuples[tIter.idx]
+		tuple := tIter.tuples[tIter.idx]
+		tIter.idx++
+		return tuple
 	}
 	return Tuple{}
 }
